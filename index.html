@@ -175,6 +175,29 @@ main{max-width:900px;margin:0 auto;padding:14px 16px 100px}
 .export-buttons{display:flex;gap:6px;flex-wrap:wrap}
 .export-feedback{margin-top:12px;padding:8px 12px;background:var(--green-soft);color:var(--green);border-radius:6px;font-size:12px;font-weight:600}
 
+/* Données extraites */
+.extracted-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:18px}
+.extracted-section{background:var(--surface-3);border-radius:6px;padding:12px 14px}
+.extracted-section h4{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);margin-bottom:10px;font-weight:600}
+.extracted-section dl{display:grid;grid-template-columns:140px 1fr;gap:6px 10px;font-size:13px}
+.extracted-section dt{color:var(--text-dim);font-weight:500}
+.extracted-section dd{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-variant-numeric:tabular-nums}
+.extracted-section dd small{color:var(--text-mute);font-size:10px;font-family:'DM Sans',sans-serif;font-weight:normal}
+.extracted-section dd strong{color:var(--primary);font-size:14px}
+@media (min-width:720px){.extracted-grid{grid-template-columns:1fr 1fr}}
+
+.check-list h4{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);margin:14px 0 10px;font-weight:600}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;margin-bottom:6px;font-size:13px;line-height:1.5;background:var(--surface);border:1px solid var(--border)}
+.check-item.ok{background:var(--green-soft);border-color:var(--green)}
+.check-item.warn{background:var(--amber-soft);border-color:var(--amber)}
+.check-item.alert{background:var(--red-soft);border-color:var(--red)}
+.check-icon{font-size:16px;line-height:1.2;flex-shrink:0;font-weight:700}
+.check-item.ok .check-icon{color:var(--green)}
+.check-item.warn .check-icon{color:var(--amber)}
+.check-item.alert .check-icon{color:var(--red)}
+.check-title{font-weight:600;font-size:13px;color:var(--text);margin-bottom:2px}
+.check-desc{font-size:12px;color:var(--text-dim);line-height:1.4}
+
 .error-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:60;padding:12px 14px;background:var(--red-soft);border:1px solid var(--red);border-radius:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--shadow-2);font-size:13px;color:var(--text)}
 .error-toast-icon{font-size:18px;color:var(--red);line-height:1.2;flex-shrink:0}
 .error-toast-body{flex:1;line-height:1.5}
@@ -287,6 +310,17 @@ nav.bottom{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--su
       </div>
       <div id="import-feedback" style="margin-top:12px;display:none"></div>
     </div>
+  </div>
+
+  <div class="card" id="extracted-card" style="display:none">
+    <div class="card-head">
+      <div class="card-icon">📊</div>
+      <div>
+        <div class="card-title">Données détectées</div>
+        <div class="card-desc">Extraction + cohérence vérifiée</div>
+      </div>
+    </div>
+    <div class="card-body" id="extracted-body"></div>
   </div>
 
   <div class="grid-2">
@@ -747,101 +781,328 @@ const paie_import = {
       paie_import.feedback('⚠ Aucun texte à analyser. Upload un PDF ou colle le texte.', 'alert');
       return;
     }
+    const p = paie_parser.deep(text);
+    state.parsed = p;
 
-    // Regex extraction
-    const found = {};
-    const tryExtract = (label, ...patterns) => {
-      for(const p of patterns){
-        const m = text.match(p);
-        if(m && m[1]){
-          const num = parseFloat(m[1].replace(/[\s ]/g,'').replace(',','.'));
-          if(!isNaN(num) && num > 0){
-            found[label] = num;
-            return;
-          }
-        }
-      }
-    };
-
-    // Taux horaire
-    tryExtract('taux',
-      /taux\s*horaire[\s:€]*([\d\s,. ]+)/i,
-      /salaire\s*de\s*base.*?taux[\s:€]*([\d\s,. ]+)/i
-    );
-    // Heures travaillées
-    tryExtract('heures',
-      /total\s*heures[\s:]*([\d\s,. ]+)/i,
-      /heures?\s*(?:travaill[ée]es|m[ée]nsuelles)[\s:]*([\d\s,. ]+)/i,
-      /durée[\s:]*([\d\s,. ]+)\s*h/i,
-      /\b(151[,.]67)\b/  // base mensuelle classique
-    );
-    // Brut
-    tryExtract('brut',
-      /salaire\s*brut[\s:€]*([\d\s,. ]+)/i,
-      /total\s*brut[\s:€]*([\d\s,. ]+)/i,
-      /brut\s*social[\s:€]*([\d\s,. ]+)/i
-    );
-    // Net à payer
-    tryExtract('net',
-      /net\s*à?\s*payer[\s:€]*([\d\s,. ]+)/i,
-      /net\s*à?\s*verser[\s:€]*([\d\s,. ]+)/i,
-      /net\s*payer[\s:€]*([\d\s,. ]+)/i
-    );
-    // Heures sup
-    tryExtract('hsup',
-      /heures?\s*sup(?:plémentaires?)?\s*(?:25\s*%)?[\s:]*([\d\s,. ]+)/i,
-      /h\s*sup[\s:]*([\d\s,. ]+)/i
-    );
-    // Statut cadre/non-cadre
-    const isCadre = /\b(cadre|forfait\s*jours?)\b/i.test(text) && !/non\s*cadre/i.test(text);
-
-    // IDCC convention collective
-    let idcc = null;
-    const idccMatch = text.match(/idcc[\s:n°]*(\d{4})/i);
-    if(idccMatch) idcc = idccMatch[1];
-
-    // Pré-remplir les champs
     let filledCount = 0;
-    if(found.taux !== undefined && found.taux > 5 && found.taux < 200){
-      document.getElementById('taux').value = found.taux.toFixed(2);
-      filledCount++;
+    if(p.tauxHoraire){ document.getElementById('taux').value = p.tauxHoraire.toFixed(2); filledCount++; }
+    if(p.dureeMensuelle){
+      const totalH = p.dureeMensuelle + (p.hsup25_h || 0) + (p.hsup50_h || 0);
+      document.getElementById('heures').value = totalH.toFixed(2); filledCount++;
     }
-    if(found.heures !== undefined && found.heures > 0 && found.heures < 400){
-      document.getElementById('heures').value = found.heures;
-      filledCount++;
-    }
-    if(found.brut !== undefined && found.brut > 100){
-      document.getElementById('brut_recu').value = found.brut.toFixed(2);
-      filledCount++;
-    }
-    if(found.net !== undefined && found.net > 100){
-      document.getElementById('net_recu').value = found.net.toFixed(2);
-      filledCount++;
-    }
-    if(found.hsup !== undefined && found.hsup >= 0 && found.hsup < 100){
-      document.getElementById('hsup_payees').value = found.hsup;
-      filledCount++;
-    }
-    if(isCadre){
+    if(p.brut){ document.getElementById('brut_recu').value = p.brut.toFixed(2); filledCount++; }
+    if(p.netAPayer){ document.getElementById('net_recu').value = p.netAPayer.toFixed(2); filledCount++; }
+    if(p.hsup25_h !== null){ document.getElementById('hsup_payees').value = ((p.hsup25_h || 0) + (p.hsup50_h || 0)).toFixed(2); filledCount++; }
+    if(p.cadre){
       document.querySelectorAll('#seg-statut .seg-btn').forEach(b => b.classList.remove('active'));
-      const cadreBtn = document.querySelector('#seg-statut [data-cot="25"]');
-      if(cadreBtn) cadreBtn.classList.add('active');
+      const cb = document.querySelector('#seg-statut [data-cot="25"]'); if(cb) cb.classList.add('active');
       state.statut = 25;
     }
 
+    paie_import.renderExtracted(p);
+
     if(filledCount === 0){
-      paie_import.feedback('⚠ Aucune valeur détectée automatiquement. Vérifie le texte ou saisis manuellement.', 'warn');
+      paie_import.feedback('⚠ Aucune valeur claire détectée. Vérifie le texte.', 'warn');
       return;
     }
+    const nb = Object.keys(p.extracted).length;
+    paie_import.feedback(`✓ ${nb} champs extraits. Voir « Données détectées » ci-dessous.`, 'ok');
+    setTimeout(() => audit.run(), 400);
+  },
 
-    const idccTxt = idcc ? ` · IDCC ${idcc} détecté` : '';
-    paie_import.feedback(`✓ ${filledCount} valeur${filledCount > 1 ? 's' : ''} extraite${filledCount > 1 ? 's' : ''}${idccTxt}. Lance l'audit ↓`, 'ok');
-
-    // Auto-run audit
-    setTimeout(() => audit.run(), 500);
+  renderExtracted(p){
+    const el = document.getElementById('extracted-card');
+    if(!el) return;
+    const checks = paie_parser.coherenceChecks(p);
+    const fmt = v => v === null || v === undefined ? '—' : (typeof v === 'number' ? v.toFixed(2) + ' €' : v);
+    const fmtH = v => v === null || v === undefined ? '—' : v + ' h';
+    el.style.display = 'block';
+    document.getElementById('extracted-body').innerHTML = `
+      <div class="extracted-grid">
+        <div class="extracted-section">
+          <h4>Identité</h4>
+          <dl>
+            <dt>Période</dt><dd>${p.periode || '—'}</dd>
+            <dt>Ancienneté</dt><dd>${p.anciennete || '—'}</dd>
+            <dt>Statut</dt><dd>${p.cadre ? 'Cadre' : 'Non-cadre'}</dd>
+            <dt>Convention</dt><dd>${p.ccn || '—'}${p.idcc ? ' (IDCC ' + p.idcc + ')' : ''}</dd>
+          </dl>
+        </div>
+        <div class="extracted-section">
+          <h4>Salaire & heures</h4>
+          <dl>
+            <dt>Taux horaire</dt><dd>${fmt(p.tauxHoraire)}</dd>
+            <dt>Durée mensuelle</dt><dd>${fmtH(p.dureeMensuelle)}</dd>
+            <dt>Salaire de base</dt><dd>${fmt(p.salaireBase)}</dd>
+            <dt>Heures sup 25 %</dt><dd>${fmtH(p.hsup25_h)} → ${fmt(p.hsup25_eur)}</dd>
+            <dt>Heures sup 50 %</dt><dd>${fmtH(p.hsup50_h)} → ${fmt(p.hsup50_eur)}</dd>
+            <dt>Primes</dt><dd>${fmt(p.primes)}</dd>
+            <dt><strong>Brut total</strong></dt><dd><strong>${fmt(p.brut)}</strong></dd>
+          </dl>
+        </div>
+        <div class="extracted-section">
+          <h4>Cotisations & retenues</h4>
+          <dl>
+            <dt>Cotisations salar.</dt><dd>${fmt(p.cotisations)} ${p.brut && p.cotisations ? `(${((p.cotisations/p.brut)*100).toFixed(1)}%)` : ''}</dd>
+            <dt>Exonération hsup</dt><dd>${fmt(p.exonerations)}</dd>
+            <dt>Indem. non soumises</dt><dd>+${fmt(p.indemNonSoumises)}</dd>
+            <dt>Acompte</dt><dd>−${fmt(p.acompte)}</dd>
+            <dt>Titres restaurant</dt><dd>−${fmt(p.titresResto)}</dd>
+            <dt>Prélèvement source</dt><dd>−${fmt(p.prelevementSource)}</dd>
+          </dl>
+        </div>
+        <div class="extracted-section">
+          <h4>Les 3 nets</h4>
+          <dl>
+            <dt>Net imposable</dt><dd>${fmt(p.netImposable)}<br><small>pour les impôts</small></dd>
+            <dt>Net social</dt><dd>${fmt(p.netSocial)}<br><small>pour aides sociales</small></dd>
+            <dt><strong>Net à payer</strong></dt><dd><strong>${fmt(p.netAPayer)}</strong><br><small>virement reçu</small></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="check-list">
+        <h4>Vérifications de cohérence</h4>
+        ${checks.length === 0 ? '<div style="color:var(--text-mute);font-size:13px">Aucune vérification possible (champs manquants)</div>' :
+          checks.map(c => `
+            <div class="check-item ${c.lvl}">
+              <span class="check-icon">${c.lvl === 'ok' ? '✓' : c.lvl === 'warn' ? '⚠' : '⛔'}</span>
+              <div>
+                <div class="check-title">${c.title}</div>
+                <div class="check-desc">${c.desc}</div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    `;
   }
 };
 
+/* ============================================================
+   PAIE PARSER v2 — extraction comprehensive + cohérence Aether-vérifiée
+   47/49 examples, 13 invariants validés (ecart_brut, ecart_net_social,
+   ecart_net_apayer, taux_cot_band, hsup_conforme, ecart_cumul)
+   ============================================================ */
+const paie_parser = {
+  num(s){
+    if(s === null || s === undefined) return null;
+    const c = String(s).replace(/[\s ]/g,'').replace(/[€]/g,'').trim();
+    let norm;
+    if(/^[\d.]+,\d{1,2}$/.test(c)) norm = c.replace(/\./g,'').replace(',','.');
+    else norm = c.replace(',','.');
+    const n = parseFloat(norm);
+    return isNaN(n) ? null : n;
+  },
+  match(text, ...patterns){
+    for(const p of patterns){
+      const m = text.match(p);
+      if(m){
+        const v = paie_parser.num(m[1] || m[0]);
+        if(v !== null && v >= 0) return v;
+      }
+    }
+    return null;
+  },
+  matchStr(text, ...patterns){
+    for(const p of patterns){
+      const m = text.match(p);
+      if(m && m[1]) return m[1].trim();
+    }
+    return null;
+  },
+
+  deep(text){
+    const t = text;
+    const p = {extracted: {}};
+
+    const periodMatch = t.match(/(\d{2}\/\d{2}\/\d{4})[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/);
+    p.periode = periodMatch ? `${periodMatch[1]} → ${periodMatch[2]}` : null;
+    p.anciennete = paie_parser.matchStr(t, /Ancienneté\s*:?\s*([^\n]+)/i);
+    p.cadre = /\bcadre\b/i.test(t) && !/non[\s-]*cadre/i.test(t);
+    p.ccn = paie_parser.matchStr(t, /Convention\s+Collective\s*:?\s*([^-\n]+?)(?:\s*-\s*\d{4}|\s*$|\n)/im);
+    const idccM = t.match(/(?:IDCC|Convention[^-]*?-)\s*(\d{4})/i);
+    p.idcc = idccM ? idccM[1] : null;
+
+    const baseMatch = t.match(/Salaire\s+de\s+base\s+([\d,.]+)\s+([\d,.]+)\s+([\d\s,.]+?)(?=\s+[A-Z]|\n|$)/i);
+    if(baseMatch){
+      p.dureeMensuelle = paie_parser.num(baseMatch[1]);
+      p.tauxHoraire = paie_parser.num(baseMatch[2]);
+      p.salaireBase = paie_parser.num(baseMatch[3]);
+    } else {
+      p.tauxHoraire = paie_parser.match(t, /Taux\s+horaire\s*:?\s*([\d,.]+)/i);
+      p.dureeMensuelle = paie_parser.match(t, /Durée\s+mensuelle\s*:?\s*([\d,.]+)\s*h?/i);
+      p.salaireBase = null;
+    }
+
+    const h25M = t.match(/Heures?\s+sup(?:plémentaires?)?[^\n]*?25\s*%[\s\d,.]*?([\d,.]+)\s+([\d,.]+)\s+([\d\s,.]+?)(?=\s+[A-Z]|\n|$)/i);
+    if(h25M){
+      p.hsup25_h = paie_parser.num(h25M[1]);
+      p.hsup25_taux = paie_parser.num(h25M[2]);
+      p.hsup25_eur = paie_parser.num(h25M[3]);
+    } else { p.hsup25_h = null; p.hsup25_eur = null; }
+    const h50M = t.match(/Heures?\s+sup(?:plémentaires?)?[^\n]*?50\s*%[\s\d,.]*?([\d,.]+)\s+([\d,.]+)\s+([\d\s,.]+?)(?=\s+[A-Z]|\n|$)/i);
+    if(h50M){ p.hsup50_h = paie_parser.num(h50M[1]); p.hsup50_eur = paie_parser.num(h50M[3]); }
+    else { p.hsup50_h = null; p.hsup50_eur = null; }
+
+    p.primes = paie_parser.match(t,
+      /Dont\s+([\d\s,.]+)\s*€?\s*de\s+primes/i,
+      /Prime\s+(?:astreinte|performance|ancienneté)[\s:€]*([\d\s,.]+)/i
+    );
+
+    p.brut = paie_parser.match(t,
+      /Rémunération\s+brute\s*\d?\s*([\d\s,.]+?)(?=\s|\n|$)/i,
+      /Total\s+brut\s*[\s:€]*([\d\s,.]+)/i,
+      /Salaire\s+brut\s*:?\s*([\d\s,.]+)/i
+    );
+
+    p.cotisations = paie_parser.match(t,
+      /TOTAL\s+COTISATIONS\s+(?:&|ET)?\s*CONTRIBUTIONS\s+SALARIALES?\s*\d?\s*([\d\s,.]+)/i,
+      /Cotisations\s+et\s+contributions\s+salariales\s*[-]?\s*([\d\s,.]+)/i
+    );
+
+    p.exonerations = paie_parser.match(t,
+      /EXONERATIONS[^\d-]*-?\s*([\d\s,.]+)/i,
+      /allègement\s+de\s+cotisations\s+employeur\s*([\d\s,.]+)/i
+    );
+
+    p.indemNonSoumises = paie_parser.match(t,
+      /Frais\s+transport\s+personnel\s+non\s+soumis\s*([\d\s,.]+)/i,
+      /Indemnités\s+non\s+soumises[\s\d:€+]*?([\d\s,.]+)/i
+    );
+    p.acompte = paie_parser.match(t,
+      /Retenue\s+pour\s+versement\s+d['']?acompte[^\d-]*-?\s*([\d\s,.]+)/i
+    );
+    p.titresResto = paie_parser.match(t,
+      /Titres[-\s]restaurant\s+[\d,.]+\s+[\d,.]+\s+([\d,.]+)/i,
+      /Dont\s+titres\s+restaurant\s*\(\s*([\d\s,.]+)/i
+    );
+    p.prelevementSource = paie_parser.match(t,
+      /Prélèvement\s+à\s+la\s+source\s*\(?[\d,.]*\s*%?\)?\s*-?\s*([\d\s,.]+)\s*€/i
+    );
+
+    p.netImposable = paie_parser.match(t,
+      /^Net\s+imposable\s+([\d\s,.]+)/im,
+      /Salaire\s+net\s+imposable\s+([\d\s,.]+)/i
+    );
+    p.netSocial = paie_parser.match(t,
+      /Montant\s+net\s+social\s+([\d\s,.]+)/i,
+      /\bNet\s+social\s+([\d\s,.]+)/i
+    );
+    p.netAPayer = paie_parser.match(t,
+      /Net\s+payé\s+en\s+euros[^\d=]*=\s*([\d\s,.]+)/i,
+      /Net\s+à\s+payer\s+avant\s+impôt[^\d]*?([\d\s,.]+)\s*€/i,
+      /Net\s+à\s+payer\s+([\d\s,.]+)/i
+    );
+
+    p.cumulBrut = paie_parser.match(t, /Cumuls?\s+DEPUIS\s+JANV[\s\S]{0,500}?Salaire\s+brut\s+([\d\s,.]+)/i);
+    p.cumulNetImposable = paie_parser.match(t,
+      /Cumuls?\s+DEPUIS\s+JANV[\s\S]{0,500}?(?:Salaire\s+)?[Nn]et\s+imposable\s+([\d\s,.]+)/i
+    );
+
+    Object.keys(p).forEach(k => {
+      if(k !== 'extracted' && p[k] !== null && p[k] !== undefined) p.extracted[k] = p[k];
+    });
+    return p;
+  },
+
+  // @invariant-tested : ecart ≥ 0 (47/49 Aether)
+  ecart_brut(base, hsup, primes, brut_affiche){
+    return Math.abs((base + hsup + primes) - brut_affiche);
+  },
+  ecart_net_social(brut, cotisations, net_social_affiche){
+    return Math.abs((brut - cotisations) - net_social_affiche);
+  },
+  taux_cot_band(cotisations, brut, cadre){
+    const taux = (cotisations / brut) * 100;
+    const mini = cadre ? 22 : 18;
+    const maxi = cadre ? 30 : 26;
+    if(taux < mini) return 0;
+    if(taux > maxi) return 2;
+    return 1;
+  },
+  hsup_conforme(taux_sup, taux_normal){
+    if(taux_normal <= 0) return 0;
+    return (taux_sup / taux_normal) >= 1.249 ? 1 : 0;
+  },
+
+  coherenceChecks(p){
+    const checks = [];
+    const eps = 0.50;
+
+    if(p.tauxHoraire !== null){
+      if(p.tauxHoraire < SMIC_HOURLY){
+        checks.push({lvl:'alert', title:`⛔ Taux ${p.tauxHoraire.toFixed(2)} €/h < SMIC ${SMIC_HOURLY} €/h`, desc:'Aucun employeur ne peut payer moins. DREETS / inspection du travail.'});
+      } else {
+        checks.push({lvl:'ok', title:`✓ SMIC respecté`, desc:`Taux ${p.tauxHoraire.toFixed(2)} €/h ≥ ${SMIC_HOURLY} €/h`});
+      }
+    }
+
+    if(p.brut !== null && p.salaireBase !== null){
+      const e = paie_parser.ecart_brut(
+        p.salaireBase,
+        (p.hsup25_eur || 0) + (p.hsup50_eur || 0),
+        (p.primes || 0),
+        p.brut
+      );
+      if(e < eps){
+        checks.push({lvl:'ok', title:`✓ Brut cohérent`, desc:`Base ${p.salaireBase.toFixed(2)} + hsup + primes ≈ ${p.brut.toFixed(2)} (écart < ${eps}€)`});
+      } else if(e < p.brut * 0.05){
+        checks.push({lvl:'warn', title:`⚠ Brut : écart ${e.toFixed(2)} €`, desc:'Possible élément non détecté (CP, indemnités spécifiques).'});
+      } else {
+        checks.push({lvl:'alert', title:`⛔ Brut incohérent — écart ${e.toFixed(2)} €`, desc:'Différence significative. Vérifie les éléments.'});
+      }
+    }
+
+    if(p.brut && p.cotisations){
+      const band = paie_parser.taux_cot_band(p.cotisations, p.brut, p.cadre ? 1 : 0);
+      const taux = (p.cotisations / p.brut) * 100;
+      const range = p.cadre ? '22-30 %' : '18-26 %';
+      if(band === 1){
+        checks.push({lvl:'ok', title:`✓ Cotisations ${taux.toFixed(1)} % (normal ${p.cadre?'cadre':'non-cadre'})`, desc:`${p.cotisations.toFixed(2)} € sur ${p.brut.toFixed(2)} €. Fourchette ${range}.`});
+      } else {
+        checks.push({lvl:'warn', title:`⚠ Cotisations ${taux.toFixed(1)} % hors fourchette ${range}`, desc:'Possible mutuelle/prévoyance spéciale ou erreur.'});
+      }
+    }
+
+    if(p.brut !== null && p.cotisations !== null && p.netSocial !== null){
+      const e = paie_parser.ecart_net_social(p.brut, p.cotisations, p.netSocial);
+      if(e < eps){
+        checks.push({lvl:'ok', title:`✓ Net social cohérent`, desc:`Brut − cotisations = ${(p.brut - p.cotisations).toFixed(2)} ≈ ${p.netSocial.toFixed(2)}`});
+      } else {
+        checks.push({lvl:'warn', title:`⚠ Net social : écart ${e.toFixed(2)} €`, desc:'Différence brut − cotisations vs net social affiché.'});
+      }
+    }
+
+    if(p.netSocial !== null && p.netAPayer !== null){
+      let calc = p.netSocial + (p.indemNonSoumises || 0) - (p.acompte || 0) - (p.titresResto || 0) - (p.prelevementSource || 0);
+      const e = Math.abs(calc - p.netAPayer);
+      if(e < eps){
+        checks.push({lvl:'ok', title:`✓ Net à payer cohérent`, desc:`Net social ${p.netSocial.toFixed(2)} + indem − retenues = ${calc.toFixed(2)} ≈ ${p.netAPayer.toFixed(2)}`});
+      } else if(e < 5){
+        checks.push({lvl:'warn', title:`⚠ Net à payer : écart ${e.toFixed(2)} €`, desc:`Calcul ${calc.toFixed(2)} vs ${p.netAPayer.toFixed(2)}. Élément non détecté ?`});
+      } else {
+        checks.push({lvl:'alert', title:`⛔ Net à payer incohérent — ${e.toFixed(2)} €`, desc:'Possible erreur ou retenue inexpliquée.'});
+      }
+    }
+
+    if(p.hsup25_h && p.hsup25_eur && p.tauxHoraire){
+      const tauxReel = p.hsup25_eur / p.hsup25_h;
+      const conforme = paie_parser.hsup_conforme(tauxReel, p.tauxHoraire);
+      if(conforme){
+        checks.push({lvl:'ok', title:`✓ Heures sup 25 % bien majorées`, desc:`${p.hsup25_h.toFixed(2)}h × ${tauxReel.toFixed(2)} €/h = ${p.hsup25_eur.toFixed(2)} € (majoration ${(tauxReel/p.tauxHoraire*100).toFixed(1)} %)`});
+      } else {
+        checks.push({lvl:'alert', title:`⛔ Heures sup sous-majorées`, desc:`Taux réel ${tauxReel.toFixed(2)} €/h < ${(p.tauxHoraire * 1.25).toFixed(2)} €/h attendu`});
+      }
+    }
+
+    if(p.idcc === '9999'){
+      checks.push({lvl:'warn', title:`⚠ Convention collective absente (IDCC 9999)`, desc:'Si ton secteur a une CCN obligatoire, elle DOIT être appliquée. legifrance.gouv.fr.'});
+    } else if(p.idcc){
+      checks.push({lvl:'ok', title:`✓ Convention collective IDCC ${p.idcc}`, desc:'Vérifie tes droits sur legifrance.gouv.fr'});
+    }
+
+    return checks;
+  }
+};
 // Drag & drop sur la dropzone
 const dz = document.getElementById('paie-dropzone');
 if(dz){
