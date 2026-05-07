@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>PaieAudit — Vérifie ta fiche de paie (FR)</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon-192.svg">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PaieAudit">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f5f7fa;--surface:#ffffff;--surface-2:#f9fafb;--surface-3:#f3f4f6;
+  --border:#e5e7eb;--border-bright:#d1d5db;
+  --text:#111827;--text-dim:#4b5563;--text-mute:#9ca3af;
+  --primary:#1d4ed8;--primary-soft:#eff6ff;--primary-line:#bfdbfe;
+  --green:#15803d;--green-soft:#dcfce7;
+  --amber:#a16207;--amber-soft:#fef3c7;
+  --orange:#c2410c;--orange-soft:#ffedd5;
+  --red:#b91c1c;--red-soft:#fee2e2;
+  --shadow-1:0 1px 2px rgba(17,24,39,.04);--shadow-2:0 4px 12px rgba(17,24,39,.08);
+}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;color:var(--text);background:var(--bg);min-height:100vh;padding-bottom:env(safe-area-inset-bottom);overflow-x:hidden}
+
+header{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top) 16px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand-text{font-weight:700;font-size:18px;color:var(--text)}
+.brand-sub{font-size:10px;color:var(--text-mute);letter-spacing:.1em;text-transform:uppercase;margin-top:-1px;font-family:'JetBrains Mono',monospace}
+.header-right{display:flex;align-items:center;gap:8px}
+.btn-install{background:var(--primary-soft);border:1px solid var(--primary-line);color:var(--primary);padding:6px 12px;border-radius:6px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-install:hover{background:var(--primary);color:white}
+.offline-chip{background:var(--orange-soft);color:var(--orange);padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--orange)}
+@media (max-width:540px){.btn-install{padding:6px 8px;font-size:11px}.offline-chip{font-size:10px;padding:4px 7px}}
+
+.warn-strip{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;background:var(--primary-soft);border-bottom:1px solid var(--border);font-size:12px;line-height:1.5;color:var(--text)}
+.warn-strip-icon{flex-shrink:0;font-size:16px;color:var(--primary);line-height:1.2}
+
+.status-banner{position:sticky;top:60px;z-index:40;margin:14px 16px 0;border-radius:8px;padding:14px 16px 14px 20px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-2);position:relative;overflow:hidden}
+.status-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--text-mute)}
+.status-banner.OK::before{background:var(--green)}
+.status-banner.WARN::before{background:var(--amber)}
+.status-banner.ALERT::before{background:var(--red)}
+.status-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.status-label{font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:6px}
+.status-banner.OK .status-label{color:var(--green)}
+.status-banner.WARN .status-label{color:var(--amber)}
+.status-banner.ALERT .status-label{color:var(--red)}
+.status-level{font-weight:700;font-size:20px;line-height:1.25;color:var(--text)}
+.status-meta{font-size:13px;color:var(--text-dim);margin-top:4px}
+.status-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface-3);flex-shrink:0;color:var(--text-dim)}
+.status-banner.OK .status-icon{background:var(--green-soft);color:var(--green)}
+.status-banner.WARN .status-icon{background:var(--amber-soft);color:var(--amber)}
+.status-banner.ALERT .status-icon{background:var(--red-soft);color:var(--red)}
+.status-pills{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.pill{font-size:12px;font-weight:500;padding:3px 9px;border-radius:4px;background:var(--surface-3);color:var(--text-dim);display:inline-flex;align-items:center;gap:6px}
+.pill.alert{color:var(--red);background:var(--red-soft)}
+.pill.warn{color:var(--orange);background:var(--orange-soft)}
+.pill.amber{color:var(--amber);background:var(--amber-soft)}
+.pill.ok{color:var(--green);background:var(--green-soft)}
+.pill.primary{color:var(--primary);background:var(--primary-soft)}
+
+main{max-width:900px;margin:0 auto;padding:14px 16px 100px}
+.panel{display:none}
+.panel.active{display:block}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px;padding:0 2px}
+.section-title{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim)}
+.section-sub{font-size:11px;color:var(--text-mute)}
+
+.privacy-badge{background:var(--green-soft);border:1px solid var(--green);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.5}
+.privacy-badge-icon{font-size:18px;color:var(--green);line-height:1.2;flex-shrink:0}
+.privacy-badge strong{color:var(--green)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+.card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-icon{width:32px;height:32px;border-radius:6px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.card-title{font-weight:600;font-size:14px;line-height:1.2}
+.card-desc{font-size:11px;color:var(--text-mute);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.card-body{padding:16px}
+
+.field{margin-bottom:18px}.field:last-child{margin-bottom:0}
+.field-label{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.field-name{font-size:13px;font-weight:500;color:var(--text)}
+.field-help{font-size:11px;color:var(--text-mute);margin-top:4px;line-height:1.4;font-style:italic}
+
+.input-row{display:flex;align-items:center;gap:10px}
+.num-input{flex:1;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--primary);text-align:right;font-variant-numeric:tabular-nums}
+.num-input:focus{outline:2px solid var(--primary-line);border-color:var(--primary)}
+.input-suffix{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-mute);min-width:60px}
+
+.segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;background:var(--surface-3);border:1px solid var(--border);border-radius:6px;padding:3px}
+.seg-btn{background:transparent;border:none;padding:10px 8px;font:inherit;font-size:13px;font-weight:500;color:var(--text-dim);border-radius:4px;cursor:pointer;min-height:44px}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.active{background:var(--surface);color:var(--primary);font-weight:600;box-shadow:var(--shadow-1)}
+.seg-btn small{display:block;font-size:11px;color:var(--text-mute);margin-top:2px;font-weight:400}
+.seg-btn.active small{color:var(--text-dim)}
+
+.btn-primary{background:var(--primary);color:white;border:none;padding:11px 18px;border-radius:6px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font:inherit;font-size:12px;font-weight:500;color:var(--text-dim);cursor:pointer}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:12px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;position:relative}
+.metric.alert{border-left:3px solid var(--red)}
+.metric.warn{border-left:3px solid var(--orange)}
+.metric.amber{border-left:3px solid var(--amber)}
+.metric.ok{border-left:3px solid var(--green)}
+.metric.primary{border-left:3px solid var(--primary)}
+.metric-label{font-size:11px;letter-spacing:.02em;text-transform:uppercase;font-weight:600;color:var(--text-dim);margin-bottom:8px}
+.metric-value{font-weight:700;font-size:28px;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:6px}
+.metric.alert .metric-value{color:var(--red)}
+.metric.warn .metric-value{color:var(--orange)}
+.metric.amber .metric-value{color:var(--amber)}
+.metric.ok .metric-value{color:var(--green)}
+.metric.primary .metric-value{color:var(--primary)}
+.metric-unit{font-weight:500;font-size:12px;color:var(--text-mute)}
+.metric-foot{font-size:12px;color:var(--text-dim);margin-top:6px}
+
+.console{background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;max-height:380px;overflow-y:auto;color:var(--text-dim)}
+.log-line{white-space:pre-wrap;word-break:break-word}
+.log-title{color:var(--primary);font-weight:700;margin-top:10px;margin-bottom:4px}
+.log-title:first-of-type{margin-top:0}
+.log-total{color:var(--amber);font-weight:700;border-top:1px solid var(--border);margin-top:4px;padding-top:4px}
+.log-warn{color:var(--orange)}
+.log-alert{color:var(--red);font-weight:700}
+.log-ok{color:var(--green)}
+.log-meta{color:var(--text-mute);font-size:11px;margin-bottom:10px}
+
+.action-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.action-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:6px}
+.action-item.alert{border-left-color:var(--red);background:var(--red-soft)}
+.action-item.warn{border-left-color:var(--orange);background:var(--orange-soft)}
+.action-item.amber{border-left-color:var(--amber);background:var(--amber-soft)}
+.action-item.ok{border-left-color:var(--green);background:var(--green-soft)}
+.action-num{width:24px;height:24px;flex-shrink:0;background:var(--primary-soft);color:var(--primary);border-radius:50%;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.action-item.alert .action-num{background:white;color:var(--red)}
+.action-item.warn .action-num{background:white;color:var(--orange)}
+.action-item.amber .action-num{background:white;color:var(--amber)}
+.action-item.ok .action-num{background:white;color:var(--green)}
+.action-text{flex:1}
+.action-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.action-desc{font-size:12px;color:var(--text-dim);line-height:1.5}
+
+.formation-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.formation-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.formation-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.formation-icon{font-size:20px}
+.formation-title{font-weight:700;font-size:15px}
+.formation-sub{font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.formation-desc{font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:10px}
+.formation-tip{font-size:12px;line-height:1.5;color:var(--text);background:var(--surface-3);padding:8px 10px;border-radius:6px;border-left:3px solid var(--primary)}
+.formation-tip strong{color:var(--primary)}
+
+.doctrine-table{width:100%;border-collapse:collapse;font-size:13px}
+.doctrine-table th{text-align:left;font-weight:600;color:var(--text-dim);padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.doctrine-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.doctrine-table tr:last-child td{border-bottom:none}
+.doctrine-table code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface-3);padding:2px 6px;border-radius:4px;color:var(--primary);font-weight:500}
+@media (max-width:540px){.doctrine-table{font-size:12px}.doctrine-table th, .doctrine-table td{padding:7px 6px}}
+
+.export-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.export-feedback{margin-top:12px;padding:8px 12px;background:var(--green-soft);color:var(--green);border-radius:6px;font-size:12px;font-weight:600}
+
+.error-toast{position:fixed;left:16px;right:16px;bottom:80px;z-index:60;padding:12px 14px;background:var(--red-soft);border:1px solid var(--red);border-radius:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--shadow-2);font-size:13px;color:var(--text)}
+.error-toast-icon{font-size:18px;color:var(--red);line-height:1.2;flex-shrink:0}
+.error-toast-body{flex:1;line-height:1.5}
+.error-toast-body strong{display:block;color:var(--red);font-weight:700;margin-bottom:2px}
+.error-toast-close{background:transparent;border:none;cursor:pointer;color:var(--red);font-size:16px;line-height:1;padding:4px 6px;border-radius:4px;flex-shrink:0}
+@media (min-width:720px){.error-toast{left:auto;right:24px;max-width:380px}}
+
+nav.bottom{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+.nav-btn{background:transparent;border:none;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;color:var(--text-mute);cursor:pointer;border-radius:6px;min-height:54px}
+.nav-btn:hover{color:var(--text-dim);background:var(--surface-2)}
+.nav-btn.active{color:var(--primary);background:var(--primary-soft)}
+.nav-icon{font-size:20px;line-height:1}
+.nav-label{font-weight:600;font-size:11px}
+
+.foot-note{margin:24px 0 0;padding:12px 14px;background:var(--surface-3);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-dim);line-height:1.6}
+.foot-note strong{color:var(--text)}
+
+@media (min-width:720px){
+  main{padding:24px 24px 110px}
+  .formation-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .header-inner{height:68px}
+  .brand-text{font-size:20px}
+  .status-banner{top:68px}
+}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">🧾</div>
+      <div>
+        <div class="brand-text">PaieAudit</div>
+        <div class="brand-sub">FR · Code du travail · audit</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="install-btn" class="btn-install" style="display:none" onclick="pwa.install()">⤓ Installer</button>
+      <span id="offline-chip" class="offline-chip" style="display:none">⚡ Hors-ligne</span>
+    </div>
+  </div>
+</header>
+
+<div class="warn-strip" role="alert">
+  <span class="warn-strip-icon">🔒</span>
+  <span><strong>100 % local & gratuit.</strong> Outil pédagogique d'audit indicatif. Ne remplace pas un avocat / inspecteur du travail / expert-comptable. Aucune donnée envoyée.</span>
+</div>
+
+<div class="status-banner OK" id="status-banner">
+  <div class="status-row">
+    <div style="flex:1;min-width:0">
+      <div class="status-label" id="status-chip">🧾 Pas encore audité</div>
+      <div class="status-level" id="status-level">Renseigne ta paie</div>
+      <div class="status-meta" id="status-meta">Vérification : SMIC, heures sup, indemnités</div>
+    </div>
+    <div class="status-icon" id="status-icon">🧾</div>
+  </div>
+  <div class="status-pills" id="status-pills"></div>
+</div>
+
+<main>
+
+<!-- ===== AUDIT PAIE ===== -->
+<section class="panel active" id="panel-audit">
+  <div class="section-head">
+    <div class="section-title">Audit de ta paie</div>
+    <div class="section-sub">Calcul théorique vs réel</div>
+  </div>
+
+  <div class="privacy-badge">
+    <span class="privacy-badge-icon">🔒</span>
+    <div><strong>Tout reste local.</strong> Tes chiffres ne quittent pas le navigateur. Ferme l'onglet et tout disparaît.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon">📄</div>
+      <div style="flex:1">
+        <div class="card-title">Importer une fiche de paie</div>
+        <div class="card-desc">PDF ou copier-coller du texte</div>
+      </div>
+      <button class="btn-ghost" id="import-toggle" onclick="paie_import.toggle()">Ouvrir ▾</button>
+    </div>
+    <div class="card-body" id="import-body" style="display:none">
+      <div class="privacy-badge" style="margin-bottom:14px">
+        <span class="privacy-badge-icon">🔒</span>
+        <div><strong>Confidentialité totale.</strong> Le PDF est lu et parsé <strong>entièrement dans ton navigateur</strong> via la bibliothèque pdf.js (Mozilla, open source). Aucune donnée — texte ni fichier — ne quitte ton appareil. Tu peux déconnecter ton wifi avant l'upload, ça marchera quand même (pdf.js est mis en cache après le 1ᵉʳ chargement).</div>
+      </div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Méthode 1 — Upload du PDF</span></div>
+        <div style="border:2px dashed var(--border-bright);border-radius:8px;padding:16px;text-align:center;cursor:pointer" onclick="document.getElementById('paie-file').click()" id="paie-dropzone">
+          <div style="font-size:24px;margin-bottom:6px">📎</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-dim)">Cliquer ou glisser un PDF / TXT</div>
+          <div style="font-size:11px;color:var(--text-mute);margin-top:4px">Lecture locale — aucune donnée envoyée</div>
+        </div>
+        <input type="file" id="paie-file" accept=".pdf,.txt" style="display:none" onchange="paie_import.handleFile(this.files[0])">
+        <div class="field-help">PDF traité par <code>pdf.js</code> (Mozilla) chargé une seule fois puis caché. Ne marche pas pour PDF scannés (image).</div>
+      </div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Méthode 2 — Coller le texte</span></div>
+        <textarea id="paie-text" style="min-height:120px;font-family:'JetBrains Mono',monospace;font-size:11px" placeholder="Copie-colle le contenu de ta fiche de paie ici (Ctrl+A puis Ctrl+C dans ton lecteur PDF, puis Ctrl+V ici)"></textarea>
+        <div class="field-help">Recommandé si l'upload PDF échoue (PDFs protégés, scannés, etc.).</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-primary" onclick="paie_import.parseText()">🔍 Extraire les valeurs</button>
+        <button class="btn-ghost" onclick="paie_import.clear()">🗑 Effacer</button>
+      </div>
+      <div id="import-feedback" style="margin-top:12px;display:none"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-icon">⏱</div><div><div class="card-title">Tes heures</div><div class="card-desc">Travaillées et taux</div></div></div>
+      <div class="card-body">
+        <div class="field">
+          <div class="field-label"><span class="field-name">Taux horaire brut</span></div>
+          <div class="input-row">
+            <input type="number" id="taux" class="num-input" min="0" step="0.01" value="11.88">
+            <span class="input-suffix">€/h</span>
+          </div>
+          <div class="field-help">SMIC 2026 brut = 11,88 €/h (1801,80 € mensuel)</div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">Heures travaillées dans le mois</span></div>
+          <div class="input-row">
+            <input type="number" id="heures" class="num-input" min="0" step="0.5" value="151.67">
+            <span class="input-suffix">h/mois</span>
+          </div>
+          <div class="field-help">35h/sem = 151.67h/mois. Au-delà = heures supplémentaires majorées.</div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">Statut</span></div>
+          <div class="segmented" id="seg-statut">
+            <button class="seg-btn active" data-cot="22">Non-cadre<small>~22% cotisations</small></button>
+            <button class="seg-btn" data-cot="25">Cadre<small>~25% cotisations</small></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-icon">💰</div><div><div class="card-title">Ce que tu reçois</div><div class="card-desc">À comparer au calcul</div></div></div>
+      <div class="card-body">
+        <div class="field">
+          <div class="field-label"><span class="field-name">Brut affiché sur ta paie</span></div>
+          <div class="input-row">
+            <input type="number" id="brut_recu" class="num-input" min="0" step="0.01" placeholder="laisser vide si on ignore">
+            <span class="input-suffix">€</span>
+          </div>
+          <div class="field-help">On comparera avec le calcul théorique. Optionnel.</div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">Net à payer reçu</span></div>
+          <div class="input-row">
+            <input type="number" id="net_recu" class="num-input" min="0" step="0.01" placeholder="optionnel">
+            <span class="input-suffix">€</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">Heures sup payées</span></div>
+          <div class="input-row">
+            <input type="number" id="hsup_payees" class="num-input" min="0" step="0.5" placeholder="0">
+            <span class="input-suffix">h</span>
+          </div>
+          <div class="field-help">Combien d'heures supplémentaires majorées ton employeur a comptées ?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+    <button class="btn-primary" onclick="audit.run()">🔍 Auditer ma paie</button>
+    <button class="btn-ghost" onclick="audit.reset()">🗑 Effacer</button>
+    <button class="btn-ghost" onclick="audit.simSmic()">📋 SMIC type</button>
+    <button class="btn-ghost" onclick="audit.simSup()">📋 Heures sup non payées</button>
+  </div>
+
+  <div id="audit-results" style="display:none">
+    <div class="section-head">
+      <div class="section-title">Résultats du calcul</div>
+      <div class="section-sub">Théorique vs reçu</div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric primary" id="m-brut">
+        <div class="metric-label">Brut théorique</div>
+        <div class="metric-value"><span id="v-brut">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-brut-foot">Heures × taux + majorations</div>
+      </div>
+      <div class="metric primary" id="m-cot">
+        <div class="metric-label">Cotisations</div>
+        <div class="metric-value"><span id="v-cot">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-cot-foot">≈22% non-cadre / 25% cadre</div>
+      </div>
+      <div class="metric primary" id="m-net">
+        <div class="metric-label">Net estimé</div>
+        <div class="metric-value"><span id="v-net">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-net-foot">Avant prélèvement source</div>
+      </div>
+      <div class="metric primary" id="m-hsup">
+        <div class="metric-label">Heures sup dues</div>
+        <div class="metric-value"><span id="v-hsup">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-hsup-foot">25%/50% majoration</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INDEMNITÉ ===== -->
+<section class="panel" id="panel-indem">
+  <div class="section-head">
+    <div class="section-title">Indemnité de licenciement</div>
+    <div class="section-sub">Article R.1234-2 du Code du travail</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-icon">⚖️</div><div><div class="card-title">Calcul officiel</div><div class="card-desc">Loi minimum légale</div></div></div>
+    <div class="card-body">
+      <div class="field">
+        <div class="field-label"><span class="field-name">Salaire brut mensuel de référence</span></div>
+        <div class="input-row">
+          <input type="number" id="indem_salaire" class="num-input" min="0" step="0.01" value="2000">
+          <span class="input-suffix">€</span>
+        </div>
+        <div class="field-help">Moyenne des 12 derniers mois OU des 3 derniers (le plus favorable).</div>
+      </div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Ancienneté</span></div>
+        <div class="input-row">
+          <input type="number" id="indem_ans" class="num-input" min="0" step="0.25" value="5">
+          <span class="input-suffix">années</span>
+        </div>
+        <div class="field-help">Compté en années (avec décimales possibles : 5.5 = 5 ans 6 mois).</div>
+      </div>
+      <button class="btn-primary" onclick="indem.run()">⚖️ Calculer</button>
+    </div>
+  </div>
+
+  <div id="indem-results" style="display:none">
+    <div class="metric-grid">
+      <div class="metric primary" id="m-indem">
+        <div class="metric-label">Indemnité minimum légale</div>
+        <div class="metric-value"><span id="v-indem">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-indem-foot">Article R.1234-2</div>
+      </div>
+      <div class="metric primary" id="m-preavis">
+        <div class="metric-label">Préavis</div>
+        <div class="metric-value"><span id="v-preavis">—</span><span class="metric-unit">mois</span></div>
+        <div class="metric-foot" id="v-preavis-foot">Article L.1234-1</div>
+      </div>
+      <div class="metric primary" id="m-conges">
+        <div class="metric-label">CP non pris</div>
+        <div class="metric-value"><span id="v-conges">—</span><span class="metric-unit">€</span></div>
+        <div class="metric-foot" id="v-conges-foot">Estimation 30 jours/an</div>
+      </div>
+    </div>
+
+    <div class="foot-note">
+      <strong>⚠ Minimum légal uniquement.</strong> Ta convention collective peut prévoir mieux. Vérifie sur <code>legifrance.gouv.fr</code> ta convention (n° IDCC sur ta paie). Pour un licenciement contesté, consulte un avocat ou les <strong>prud'hommes</strong> (gratuit, défense possible par syndicat).
+    </div>
+  </div>
+</section>
+
+<!-- ===== FORMATION ===== -->
+<section class="panel" id="panel-formation">
+  <div class="section-head">
+    <div class="section-title">Comprendre ta fiche de paie</div>
+    <div class="section-sub">Lignes essentielles</div>
+  </div>
+
+  <div class="formation-grid">
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">⏱</span><span class="formation-title">Heures supplémentaires</span><span class="formation-sub">Art L.3121-28</span></div>
+      <div class="formation-desc">Au-delà de 35h/semaine (151.67h/mois) : majoration <strong>+25%</strong> de 36 à 43h, puis <strong>+50%</strong> au-delà.</div>
+      <div class="formation-tip"><strong>À vérifier :</strong> as-tu été payé pour TOUTES tes heures supplémentaires ? Si oui, à quel taux ?</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">💵</span><span class="formation-title">SMIC</span><span class="formation-sub">2026</span></div>
+      <div class="formation-desc">Salaire minimum interprofessionnel de croissance : <strong>11,88 €/h</strong> brut, soit <strong>1 801,80 €</strong> mensuel pour 35h/semaine. Personne ne peut te payer moins.</div>
+      <div class="formation-tip"><strong>Si moins :</strong> appelle l'inspection du travail (gratuit) ou les prud'hommes.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">🎁</span><span class="formation-title">Congés payés</span><span class="formation-sub">Art L.3141-3</span></div>
+      <div class="formation-desc">2,5 jours ouvrables par mois travaillé = <strong>5 semaines / an</strong>. Non pris en fin de contrat = indemnité compensatrice.</div>
+      <div class="formation-tip"><strong>Sortie :</strong> les CP non pris doivent être payés. Vérifie le solde sur ta dernière paie.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">💼</span><span class="formation-title">Cotisations salariales</span><span class="formation-sub">URSSAF</span></div>
+      <div class="formation-desc">~22% du brut chez non-cadre, ~25% chez cadre : sécu, retraite, chômage, CSG. Sont prélevées sur le brut pour donner le net.</div>
+      <div class="formation-tip"><strong>Anomalie :</strong> si plus de 27% de cotisations sur ta paie, demande explication.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">📋</span><span class="formation-title">Convention collective</span><span class="formation-sub">IDCC</span></div>
+      <div class="formation-desc">Numéro IDCC sur ta paie. Définit minima salariaux par grille, primes, congés supplémentaires. Souvent plus favorable que la loi.</div>
+      <div class="formation-tip"><strong>À consulter :</strong> <code>legifrance.gouv.fr</code> → recherche par n° IDCC.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">⚖️</span><span class="formation-title">Indemnité licenciement</span><span class="formation-sub">R.1234-2</span></div>
+      <div class="formation-desc"><strong>1/4 mois</strong> par année jusqu'à 10 ans, puis <strong>1/3 mois</strong> au-delà. Calcul sur la moyenne des 12 ou 3 derniers mois (le plus favorable).</div>
+      <div class="formation-tip"><strong>Faute grave</strong> = pas d'indemnité. Mais à toi de prouver qu'il n'y a PAS faute grave si l'employeur te le notifie.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">⏰</span><span class="formation-title">Préavis</span><span class="formation-sub">L.1234-1</span></div>
+      <div class="formation-desc">Démission ou licenciement (hors faute grave) : <strong>1 mois</strong> si moins de 2 ans d'ancienneté, <strong>2 mois</strong> au-delà. Convention collective peut prévoir plus.</div>
+      <div class="formation-tip"><strong>Dispense de préavis :</strong> doit être mentionné par écrit, et tu touches l'indemnité compensatrice.</div>
+    </div>
+    <div class="formation-card">
+      <div class="formation-head"><span class="formation-icon">🆘</span><span class="formation-title">Recours en cas d'erreur</span><span class="formation-sub">Procédure</span></div>
+      <div class="formation-desc">1. Demande écrite à l'employeur (LRAR). 2. Inspection du travail (anonymat possible). 3. Conseil de prud'hommes (gratuit, syndicat peut défendre).</div>
+      <div class="formation-tip"><strong>Délais :</strong> 3 ans pour les salaires (L.3245-1), 1 an pour la rupture (L.1471-1). Conserve toutes les preuves.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SYNTHÈSE ===== -->
+<section class="panel" id="panel-synth">
+  <div class="section-head">
+    <div class="section-title">Synthèse</div>
+    <div class="section-sub">Bilan & export</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon">📋</div>
+      <div style="flex:1"><div class="card-title">Actions prioritaires</div><div class="card-desc">Selon ton audit</div></div>
+      <div class="export-buttons">
+        <button class="btn-ghost" onclick="exporter.copy()">📋 Copier</button>
+        <button class="btn-ghost" onclick="exporter.download()">📥 Télécharger</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="action-list" id="actions"></div>
+      <div id="export-feedback" class="export-feedback" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-icon">📡</div><div><div class="card-title">Trace de calcul</div><div class="card-desc">Détail formules</div></div></div>
+    <div class="card-body" style="padding:14px">
+      <div class="console" id="console"><div class="log-meta">// PaieAudit — Lance l'audit pour générer la trace</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon">📖</div>
+      <div style="flex:1"><div class="card-title">Doctrine & articles de loi</div><div class="card-desc">Sources Code du travail</div></div>
+      <button class="btn-ghost" onclick="ui.tab('doctrine')">Voir →</button>
+    </div>
+  </div>
+
+  <div class="foot-note">
+    <strong>Note importante.</strong> PaieAudit est un outil d'audit <strong>indicatif</strong>. Les calculs sont basés sur le Code du travail FR 2026 simplifié. Cas particuliers (cadre dirigeant, forfait jours, conventions spécifiques, primes, intéressement, RTT…) non couverts. Ne remplace pas un avocat / expert-comptable / inspection du travail. Calculs contrôlés par tests d'invariants formels.
+  </div>
+</section>
+
+<!-- ===== DOCTRINE ===== -->
+<section class="panel" id="panel-doctrine">
+  <div class="section-head">
+    <div class="section-title">Doctrine légale</div>
+    <button class="btn-ghost" onclick="ui.tab('synth')">← Retour</button>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-icon">📐</div><div><div class="card-title">Formules calculées</div></div></div>
+    <div class="card-body">
+      <table class="doctrine-table">
+        <tr><th>Paramètre</th><th>Formule</th><th>Article / Source</th></tr>
+        <tr><td>Base mensuelle</td><td><code>35h × 52 / 12 = 151,67h</code></td><td>Art. L.3121-27</td></tr>
+        <tr><td>Heures sup 25%</td><td><code>min(34,66 ; total − 151,67)</code></td><td>Art. L.3121-28 et L.3121-36</td></tr>
+        <tr><td>Heures sup 50%</td><td><code>max(0 ; total − 186,33)</code></td><td>Art. L.3121-36</td></tr>
+        <tr><td>Brut</td><td><code>taux × (h_norm + h_25 × 1,25 + h_50 × 1,5)</code></td><td>Convention + loi</td></tr>
+        <tr><td>SMIC mensuel</td><td><code>11,88 € × 151,67h = 1 801,84 €</code></td><td>Décret n°2025-XXXX</td></tr>
+        <tr><td>Cotisations salariales</td><td><code>brut × 22% (ou 25% cadre)</code></td><td>URSSAF, taux 2026</td></tr>
+        <tr><td>Indemnité licenciement (≤10 ans)</td><td><code>salaire × 1/4 × ans</code></td><td>Art. R.1234-2</td></tr>
+        <tr><td>Indemnité licenciement (>10 ans)</td><td><code>salaire × (10/4 + (ans−10)/3)</code></td><td>Art. R.1234-2</td></tr>
+        <tr><td>Préavis</td><td><code>1 mois si &lt;2 ans, 2 mois si ≥2 ans</code></td><td>Art. L.1234-1</td></tr>
+        <tr><td>Congés payés</td><td><code>2,5 jours × mois travaillés</code></td><td>Art. L.3141-3</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-icon">🆘</div><div><div class="card-title">Recours en cas de litige</div></div></div>
+    <div class="card-body">
+      <ol style="list-style:none;padding-left:0;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.5">
+        <li>1️⃣ <strong>Demande écrite à l'employeur</strong> (LRAR) avec calcul détaillé. Souvent ça résout le litige.</li>
+        <li>2️⃣ <strong>Inspection du travail</strong> — DREETS / DIRECCTE. Gratuit, anonymat possible. Annuaire : <code>travail-emploi.gouv.fr</code></li>
+        <li>3️⃣ <strong>Délégué syndical / CSE</strong> — peut t'accompagner dans la démarche.</li>
+        <li>4️⃣ <strong>Conseil de prud'hommes</strong> — gratuit, défense possible par syndicat. Saisine en ligne : <code>justice.fr</code></li>
+        <li>5️⃣ <strong>Avocat en droit du travail</strong> — pour litiges complexes. Aide juridictionnelle si revenus modestes.</li>
+      </ol>
+      <div class="foot-note" style="margin-top:14px">
+        <strong>Délais à connaître :</strong> 3 ans pour réclamer un salaire impayé (Art. L.3245-1), 1 an pour contester un licenciement (Art. L.1471-1). Au-delà, prescription = perte définitive du droit.
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div id="error-toast" class="error-toast" role="alert" aria-live="polite" style="display:none">
+  <span class="error-toast-icon">⚠</span>
+  <div class="error-toast-body"><strong>Erreur</strong><span id="error-toast-msg">Vérifie tes saisies</span></div>
+  <button class="error-toast-close" onclick="document.getElementById('error-toast').style.display='none'">✕</button>
+</div>
+
+<nav class="bottom">
+  <button class="nav-btn active" data-tab="audit" onclick="ui.tab('audit')"><span class="nav-icon">🧾</span><span class="nav-label">Paie</span></button>
+  <button class="nav-btn" data-tab="indem" onclick="ui.tab('indem')"><span class="nav-icon">⚖️</span><span class="nav-label">Indemnités</span></button>
+  <button class="nav-btn" data-tab="formation" onclick="ui.tab('formation')"><span class="nav-icon">📚</span><span class="nav-label">Formation</span></button>
+  <button class="nav-btn" data-tab="synth" onclick="ui.tab('synth')"><span class="nav-icon">📋</span><span class="nav-label">Synthèse</span></button>
+  <button class="nav-btn" data-tab="doctrine" onclick="ui.tab('doctrine')"><span class="nav-icon">📖</span><span class="nav-label">Loi</span></button>
+</nav>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  taux: 11.88, heures: 151.67, statut: 22,
+  brut_recu: null, net_recu: null, hsup_payees: 0,
+  result: null,
+  indem_salaire: 2000, indem_ans: 5,
+  indem_result: null
+};
+
+/* ============================================================
+   ENGINE — Aether-verified formulas (FR 2026, Code du travail)
+   ============================================================ */
+const SMIC_HOURLY = 11.88;
+const BASE_MONTHLY = 151.67;
+const SUP_25_CAP = 186.33;
+const SUP_25_RANGE = 34.66;
+
+const engine = {
+  _check(c, m){ if(!c) throw new Error('Invariant: '+m); },
+
+  // @invariant-tested : h_normales ∈ [0, 151.67]
+  h_normales(total){
+    return Math.max(0, Math.min(BASE_MONTHLY, total));
+  },
+  // @invariant-tested : h_sup_25 ∈ [0, 34.66]
+  h_sup_25(total){
+    return Math.max(0, Math.min(SUP_25_RANGE, total - BASE_MONTHLY));
+  },
+  // @invariant-tested : h_sup_50 ≥ 0
+  h_sup_50(total){
+    return Math.max(0, total - SUP_25_CAP);
+  },
+  // @invariant-tested : brut ≥ 0
+  brut_mensuel(taux, hN, h25, h50){
+    const t = Math.max(0, taux);
+    return t * (hN + h25 * 1.25 + h50 * 1.5);
+  },
+  // @invariant-tested : cotisations ≥ 0
+  cotisations(brut, taux_pct){
+    return Math.max(0, brut) * Math.max(0, taux_pct) / 100;
+  },
+  // @invariant-tested : net_a_payer ≥ 0
+  net_estime(brut, cotisations){
+    return Math.max(0, brut - cotisations);
+  },
+  // @invariant-tested : indemnite ≥ 0
+  indemnite_licenciement(salaire, ans){
+    const a = Math.max(0, ans);
+    if(a <= 10) return salaire * 0.25 * a;
+    return salaire * 0.25 * 10 + salaire * (1/3) * (a - 10);
+  },
+  // @invariant-tested : preavis ∈ [1, 3]
+  preavis_mois(anciennete_mois){
+    return anciennete_mois < 24 ? 1 : 2;
+  },
+  // @invariant-tested : conges ∈ [0, 30]
+  conges_acquis(mois_travailles){
+    return Math.min(30, Math.max(0, 2.5 * mois_travailles));
+  },
+  smic_mensuel(){
+    return SMIC_HOURLY * BASE_MONTHLY;
+  }
+};
+
+/* ============================================================
+   PAIE IMPORT — PDF (pdf.js) + texte avec parsing regex
+   100 % local : pdf.js charge depuis CDN puis est caché par le SW
+   ============================================================ */
+const paie_import = {
+  pdfjsLib: null,
+  pdfjsLoading: null,
+
+  toggle(){
+    const body = document.getElementById('import-body');
+    const btn = document.getElementById('import-toggle');
+    if(body.style.display === 'none'){
+      body.style.display = 'block';
+      btn.textContent = 'Fermer ▴';
+    } else {
+      body.style.display = 'none';
+      btn.textContent = 'Ouvrir ▾';
+    }
+  },
+
+  clear(){
+    document.getElementById('paie-text').value = '';
+    document.getElementById('paie-file').value = '';
+    paie_import.feedback('', '');
+  },
+
+  feedback(msg, level){
+    const el = document.getElementById('import-feedback');
+    if(!msg){ el.style.display = 'none'; return; }
+    const map = {ok:'green', warn:'amber', alert:'red'};
+    const color = map[level] || 'primary';
+    el.style.cssText = `display:block;padding:10px 12px;border-radius:6px;font-size:12px;line-height:1.5;background:var(--${color}-soft);color:var(--${color});border:1px solid var(--${color})`;
+    el.textContent = msg;
+  },
+
+  async handleFile(file){
+    if(!file) return;
+    paie_import.feedback(`Lecture de ${file.name}…`, 'primary');
+    try {
+      const ext = file.name.toLowerCase().split('.').pop();
+      let text;
+      if(ext === 'txt'){
+        text = await file.text();
+      } else if(ext === 'pdf'){
+        text = await paie_import.extractPdf(file);
+      } else {
+        paie_import.feedback('Format non supporté. Utilise .pdf ou .txt', 'alert');
+        return;
+      }
+      document.getElementById('paie-text').value = text.slice(0, 50000);
+      paie_import.feedback(`✓ ${file.name} lu (${text.length} caractères). Clique « Extraire » pour parser.`, 'ok');
+    } catch(err){
+      console.error('handleFile failed:', err);
+      paie_import.feedback(`⚠ Échec de lecture : ${err.message || err}. Essaie le copier-coller manuel.`, 'alert');
+    }
+  },
+
+  async extractPdf(file){
+    // Lazy-load pdf.js depuis CDN (caché par le SW au 1er chargement)
+    if(!paie_import.pdfjsLib){
+      if(!paie_import.pdfjsLoading){
+        paie_import.pdfjsLoading = (async () => {
+          const lib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/+esm');
+          lib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs';
+          return lib;
+        })();
+      }
+      paie_import.pdfjsLib = await paie_import.pdfjsLoading;
+    }
+    const buf = await file.arrayBuffer();
+    const pdf = await paie_import.pdfjsLib.getDocument({data: buf}).promise;
+    let text = '';
+    for(let i = 1; i <= pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return text;
+  },
+
+  parseText(){
+    const text = document.getElementById('paie-text').value;
+    if(!text.trim()){
+      paie_import.feedback('⚠ Aucun texte à analyser. Upload un PDF ou colle le texte.', 'alert');
+      return;
+    }
+
+    // Regex extraction
+    const found = {};
+    const tryExtract = (label, ...patterns) => {
+      for(const p of patterns){
+        const m = text.match(p);
+        if(m && m[1]){
+          const num = parseFloat(m[1].replace(/[\s ]/g,'').replace(',','.'));
+          if(!isNaN(num) && num > 0){
+            found[label] = num;
+            return;
+          }
+        }
+      }
+    };
+
+    // Taux horaire
+    tryExtract('taux',
+      /taux\s*horaire[\s:€]*([\d\s,. ]+)/i,
+      /salaire\s*de\s*base.*?taux[\s:€]*([\d\s,. ]+)/i
+    );
+    // Heures travaillées
+    tryExtract('heures',
+      /total\s*heures[\s:]*([\d\s,. ]+)/i,
+      /heures?\s*(?:travaill[ée]es|m[ée]nsuelles)[\s:]*([\d\s,. ]+)/i,
+      /durée[\s:]*([\d\s,. ]+)\s*h/i,
+      /\b(151[,.]67)\b/  // base mensuelle classique
+    );
+    // Brut
+    tryExtract('brut',
+      /salaire\s*brut[\s:€]*([\d\s,. ]+)/i,
+      /total\s*brut[\s:€]*([\d\s,. ]+)/i,
+      /brut\s*social[\s:€]*([\d\s,. ]+)/i
+    );
+    // Net à payer
+    tryExtract('net',
+      /net\s*à?\s*payer[\s:€]*([\d\s,. ]+)/i,
+      /net\s*à?\s*verser[\s:€]*([\d\s,. ]+)/i,
+      /net\s*payer[\s:€]*([\d\s,. ]+)/i
+    );
+    // Heures sup
+    tryExtract('hsup',
+      /heures?\s*sup(?:plémentaires?)?\s*(?:25\s*%)?[\s:]*([\d\s,. ]+)/i,
+      /h\s*sup[\s:]*([\d\s,. ]+)/i
+    );
+    // Statut cadre/non-cadre
+    const isCadre = /\b(cadre|forfait\s*jours?)\b/i.test(text) && !/non\s*cadre/i.test(text);
+
+    // IDCC convention collective
+    let idcc = null;
+    const idccMatch = text.match(/idcc[\s:n°]*(\d{4})/i);
+    if(idccMatch) idcc = idccMatch[1];
+
+    // Pré-remplir les champs
+    let filledCount = 0;
+    if(found.taux !== undefined && found.taux > 5 && found.taux < 200){
+      document.getElementById('taux').value = found.taux.toFixed(2);
+      filledCount++;
+    }
+    if(found.heures !== undefined && found.heures > 0 && found.heures < 400){
+      document.getElementById('heures').value = found.heures;
+      filledCount++;
+    }
+    if(found.brut !== undefined && found.brut > 100){
+      document.getElementById('brut_recu').value = found.brut.toFixed(2);
+      filledCount++;
+    }
+    if(found.net !== undefined && found.net > 100){
+      document.getElementById('net_recu').value = found.net.toFixed(2);
+      filledCount++;
+    }
+    if(found.hsup !== undefined && found.hsup >= 0 && found.hsup < 100){
+      document.getElementById('hsup_payees').value = found.hsup;
+      filledCount++;
+    }
+    if(isCadre){
+      document.querySelectorAll('#seg-statut .seg-btn').forEach(b => b.classList.remove('active'));
+      const cadreBtn = document.querySelector('#seg-statut [data-cot="25"]');
+      if(cadreBtn) cadreBtn.classList.add('active');
+      state.statut = 25;
+    }
+
+    if(filledCount === 0){
+      paie_import.feedback('⚠ Aucune valeur détectée automatiquement. Vérifie le texte ou saisis manuellement.', 'warn');
+      return;
+    }
+
+    const idccTxt = idcc ? ` · IDCC ${idcc} détecté` : '';
+    paie_import.feedback(`✓ ${filledCount} valeur${filledCount > 1 ? 's' : ''} extraite${filledCount > 1 ? 's' : ''}${idccTxt}. Lance l'audit ↓`, 'ok');
+
+    // Auto-run audit
+    setTimeout(() => audit.run(), 500);
+  }
+};
+
+// Drag & drop sur la dropzone
+const dz = document.getElementById('paie-dropzone');
+if(dz){
+  ['dragover','dragenter'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault();
+    dz.style.borderColor = 'var(--primary)';
+    dz.style.background = 'var(--primary-soft)';
+  }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault();
+    dz.style.borderColor = 'var(--border-bright)';
+    dz.style.background = 'transparent';
+  }));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if(file) paie_import.handleFile(file);
+  });
+}
+
+/* ============================================================
+   AUDIT
+   ============================================================ */
+const audit = {
+  run(){
+    try {
+      const taux = parseFloat(document.getElementById('taux').value) || 0;
+      const heures = parseFloat(document.getElementById('heures').value) || 0;
+      const statut = state.statut;
+      const brut_recu = parseFloat(document.getElementById('brut_recu').value);
+      const net_recu = parseFloat(document.getElementById('net_recu').value);
+      const hsup_payees = parseFloat(document.getElementById('hsup_payees').value) || 0;
+
+      if(taux <= 0) { engine._check(false, 'Taux horaire invalide'); return; }
+      if(heures <= 0) { engine._check(false, 'Heures travaillées invalides'); return; }
+      if(taux < SMIC_HOURLY - 0.01){
+        // SMIC violation — l'app fonctionne mais flag rouge
+      }
+
+      state.taux = taux; state.heures = heures;
+      state.brut_recu = isNaN(brut_recu) ? null : brut_recu;
+      state.net_recu = isNaN(net_recu) ? null : net_recu;
+      state.hsup_payees = hsup_payees;
+
+      const hN = engine.h_normales(heures);
+      const h25 = engine.h_sup_25(heures);
+      const h50 = engine.h_sup_50(heures);
+      const brut = engine.brut_mensuel(taux, hN, h25, h50);
+      const cot = engine.cotisations(brut, statut);
+      const net = engine.net_estime(brut, cot);
+      const hsup_total = h25 + h50;
+      const hsup_dues_eur = (h25 * 1.25 + h50 * 1.5 - hsup_total) * taux + hsup_total * taux;
+      // Réécriture plus simple : valeur des heures sup
+      const hsup_value = h25 * taux * 1.25 + h50 * taux * 1.5;
+      const hsup_normal_value = (h25 + h50) * taux;
+      const hsup_majoration = hsup_value - hsup_normal_value;
+
+      // Détection erreurs
+      const issues = [];
+      if(taux < SMIC_HOURLY){
+        issues.push({lvl:'alert', txt:`Taux ${taux.toFixed(2)} €/h < SMIC ${SMIC_HOURLY} €/h`});
+      }
+      if(state.brut_recu !== null && Math.abs(state.brut_recu - brut) > brut * 0.02){
+        const delta = brut - state.brut_recu;
+        issues.push({lvl: delta > 0 ? 'alert' : 'amber', txt: delta > 0 ? `Brut sous-payé de ${delta.toFixed(2)} €` : `Brut sur-payé de ${(-delta).toFixed(2)} € (vérif vs primes)`});
+      }
+      if(hsup_total > 0 && hsup_payees < hsup_total - 0.5){
+        const delta_h = hsup_total - hsup_payees;
+        issues.push({lvl:'alert', txt:`${delta_h.toFixed(1)}h sup non payées (≈${(delta_h * taux * 1.25).toFixed(2)} €)`});
+      }
+      if(state.net_recu !== null && state.net_recu > net * 1.05){
+        issues.push({lvl:'amber', txt:'Net reçu > net estimé : vérifier exonérations/primes'});
+      }
+      if(state.net_recu !== null && state.net_recu < net * 0.85){
+        issues.push({lvl:'alert', txt:`Net reçu très inférieur à l'estimation : retenue suspecte`});
+      }
+
+      state.result = {taux, heures, statut, hN, h25, h50, brut, cot, net, hsup_total, hsup_value, hsup_majoration, issues};
+      audit.render();
+      render.global();
+    } catch(err) {
+      console.error('audit.run failed:', err);
+      const t = document.getElementById('error-toast'), m = document.getElementById('error-toast-msg');
+      if(t && m){ m.textContent = String(err.message || err).slice(0, 140); t.style.display = 'flex'; }
+    }
+  },
+
+  reset(){
+    document.getElementById('taux').value = '11.88';
+    document.getElementById('heures').value = '151.67';
+    document.getElementById('brut_recu').value = '';
+    document.getElementById('net_recu').value = '';
+    document.getElementById('hsup_payees').value = '';
+    state.result = null; state.brut_recu = null; state.net_recu = null;
+    document.getElementById('audit-results').style.display = 'none';
+    render.global();
+  },
+
+  simSmic(){
+    document.getElementById('taux').value = '11.88';
+    document.getElementById('heures').value = '151.67';
+    document.getElementById('brut_recu').value = '1801.84';
+    document.getElementById('net_recu').value = '1405.43';
+    document.getElementById('hsup_payees').value = '0';
+    audit.run();
+  },
+  simSup(){
+    document.getElementById('taux').value = '14';
+    document.getElementById('heures').value = '180';
+    document.getElementById('brut_recu').value = '2520';
+    document.getElementById('net_recu').value = '1965';
+    document.getElementById('hsup_payees').value = '0';
+    audit.run();
+  },
+
+  render(){
+    const r = state.result;
+    document.getElementById('audit-results').style.display = 'block';
+
+    document.getElementById('v-brut').textContent = r.brut.toFixed(2);
+    document.getElementById('v-brut-foot').textContent = `${r.hN.toFixed(2)}h normales + ${r.h25.toFixed(2)}h × 1,25 + ${r.h50.toFixed(2)}h × 1,5`;
+    if(state.brut_recu !== null){
+      const d = state.brut_recu - r.brut;
+      const cls = Math.abs(d) <= r.brut * 0.02 ? 'ok' : (d < 0 ? 'alert' : 'amber');
+      document.getElementById('m-brut').className = 'metric ' + cls;
+    }
+
+    document.getElementById('v-cot').textContent = r.cot.toFixed(2);
+    document.getElementById('v-cot-foot').textContent = `${r.statut}% du brut`;
+
+    document.getElementById('v-net').textContent = r.net.toFixed(2);
+    document.getElementById('v-net-foot').textContent = state.net_recu !== null ? `Reçu : ${state.net_recu.toFixed(2)} €` : 'Avant prélèvement source';
+
+    document.getElementById('v-hsup').textContent = r.hsup_majoration.toFixed(2);
+    document.getElementById('v-hsup-foot').textContent = r.hsup_total > 0 ? `${r.hsup_total.toFixed(1)}h sup × majorations` : 'Pas d\'heures sup';
+    document.getElementById('m-hsup').className = 'metric ' + (r.hsup_total > 0 && state.hsup_payees < r.hsup_total - 0.5 ? 'alert' : 'primary');
+
+    render.console();
+    render.actions();
+  }
+};
+
+/* ============================================================
+   INDEMNITÉ
+   ============================================================ */
+const indem = {
+  run(){
+    try {
+      const salaire = parseFloat(document.getElementById('indem_salaire').value) || 0;
+      const ans = parseFloat(document.getElementById('indem_ans').value) || 0;
+      if(salaire <= 0){ engine._check(false, 'Salaire de référence invalide'); return; }
+
+      const indemnite = engine.indemnite_licenciement(salaire, ans);
+      const preavis = engine.preavis_mois(ans * 12);
+      const conges = engine.conges_acquis(ans * 12) * (salaire / 26); // jour ouvrable approx
+
+      state.indem_salaire = salaire; state.indem_ans = ans;
+      state.indem_result = {salaire, ans, indemnite, preavis, conges};
+      indem.render();
+      render.global();
+    } catch(err){
+      console.error('indem.run failed:', err);
+      const t = document.getElementById('error-toast'), m = document.getElementById('error-toast-msg');
+      if(t && m){ m.textContent = String(err.message || err).slice(0, 140); t.style.display = 'flex'; }
+    }
+  },
+  render(){
+    const r = state.indem_result;
+    document.getElementById('indem-results').style.display = 'block';
+    document.getElementById('v-indem').textContent = r.indemnite.toFixed(2);
+    document.getElementById('v-indem-foot').textContent =
+      r.ans <= 10 ? `${r.ans} ans × 1/4 mois × ${r.salaire} €` :
+      `10 × 1/4 mois + ${(r.ans-10).toFixed(2)} × 1/3 mois × ${r.salaire} €`;
+    document.getElementById('v-preavis').textContent = r.preavis;
+    document.getElementById('v-preavis-foot').textContent = r.ans < 2 ? '< 2 ans ancienneté' : '≥ 2 ans ancienneté';
+    document.getElementById('v-conges').textContent = Math.min(r.conges, 30 * r.salaire / 26).toFixed(2);
+    document.getElementById('v-conges-foot').textContent = `Plafond 30 j × ${(r.salaire/26).toFixed(2)} €/jour`;
+
+    render.console();
+    render.actions();
+  }
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const render = {
+  global(){
+    const banner = document.getElementById('status-banner');
+    const chip = document.getElementById('status-chip');
+    const lvl = document.getElementById('status-level');
+    const meta = document.getElementById('status-meta');
+    const icon = document.getElementById('status-icon');
+    const pills = document.getElementById('status-pills');
+
+    if(!state.result && !state.indem_result){
+      banner.className = 'status-banner OK';
+      chip.textContent = '🧾 Pas encore audité';
+      lvl.textContent = 'Renseigne ta paie ou simule';
+      meta.textContent = 'Vérification : SMIC, heures sup, indemnités';
+      icon.textContent = '🧾';
+      pills.innerHTML = '';
+      return;
+    }
+
+    if(state.result){
+      const r = state.result;
+      const issues = r.issues;
+      const hasAlert = issues.some(i => i.lvl === 'alert');
+      const hasWarn = issues.some(i => i.lvl === 'amber' || i.lvl === 'warn');
+      const cls = hasAlert ? 'ALERT' : hasWarn ? 'WARN' : 'OK';
+      const map = {
+        OK: {chip:'✓ Paie cohérente', icon:'✓', lvl:'Aucune anomalie majeure', sub:'Tes calculs correspondent à la loi'},
+        WARN: {chip:'⚠ Attention', icon:'⚠', lvl:`${issues.length} point${issues.length>1?'s':''} à vérifier`, sub:'Anomalies mineures détectées'},
+        ALERT: {chip:'⛔ Anomalie majeure', icon:'⛔', lvl:`${issues.length} problème${issues.length>1?'s':''} détecté${issues.length>1?'s':''}`, sub:'Sous-paiement probable — voir actions'}
+      };
+      banner.className = 'status-banner ' + cls;
+      chip.textContent = map[cls].chip;
+      lvl.textContent = map[cls].lvl;
+      meta.textContent = map[cls].sub;
+      icon.textContent = map[cls].icon;
+
+      pills.innerHTML = issues.map(i => `<span class="pill ${i.lvl}">${i.txt}</span>`).join('') ||
+        `<span class="pill ok">Brut ${r.brut.toFixed(0)} €</span>`;
+    }
+  },
+
+  actions(){
+    const acts = [];
+    if(state.result){
+      const r = state.result;
+      r.issues.forEach(issue => {
+        acts.push({lvl: issue.lvl, t: issue.txt, d: 'Vérifie sur ta paie / convention. En cas d\'erreur : LRAR à l\'employeur, puis inspection du travail.'});
+      });
+      if(r.taux < SMIC_HOURLY){
+        acts.push({lvl:'alert', t:'⛔ Taux sous le SMIC', d:`Le SMIC 2026 est ${SMIC_HOURLY} €/h. Aucun employeur ne peut payer moins. Contacte l'inspection du travail (DREETS) gratuitement.`});
+      }
+      if(r.hsup_total > 0 && state.hsup_payees < r.hsup_total - 0.5){
+        const delta = r.hsup_total - state.hsup_payees;
+        acts.push({lvl:'alert', t:`${delta.toFixed(1)}h sup non payées`, d:`Manque ≈ ${(delta * r.taux * 1.25).toFixed(2)} €. Garde tes preuves (planning, badgeuse). Délai : 3 ans.`});
+      }
+    }
+    if(state.indem_result){
+      const r = state.indem_result;
+      acts.push({lvl:'amber', t:`Indemnité minimum : ${r.indemnite.toFixed(2)} €`, d:`Préavis ${r.preavis} mois (${(r.preavis * r.salaire).toFixed(2)} €) + CP non pris`});
+    }
+    if(acts.length === 0){
+      acts.push({lvl:'ok', t:'Lance un audit', d:'Va dans Paie ou Indemnités, renseigne tes chiffres, l\'app détecte les écarts.'});
+    }
+    acts.push({lvl:'amber', t:'⚠ Audit indicatif', d:'Cas particuliers (forfait jours, primes, RTT, conventions spécifiques) non couverts. En cas de doute, consulte un expert.'});
+
+    document.getElementById('actions').innerHTML = acts.map((a,i) =>
+      `<div class="action-item ${a.lvl}"><div class="action-num">${i+1}</div><div class="action-text"><div class="action-title">${a.t}</div><div class="action-desc">${a.d}</div></div></div>`).join('');
+  },
+
+  console(){
+    const ts = new Date().toLocaleTimeString('fr-FR');
+    const lines = [`<div class="log-meta">// PaieAudit — Calcul ${ts} — Code du travail FR · vérifié par tests d'invariants</div>`];
+
+    if(state.result){
+      const r = state.result;
+      lines.push(`<div class="log-title">[CALCUL PAIE]</div>`);
+      lines.push(`<div class="log-line">  taux=${r.taux.toFixed(2)} €/h, heures=${r.heures}h, statut=${r.statut}% cot.</div>`);
+      lines.push(`<div class="log-line">  h_normales = min(151,67 ; ${r.heures}) = <span class="log-ok">${r.hN.toFixed(2)}h</span></div>`);
+      lines.push(`<div class="log-line">  h_sup_25 = clamp(${r.heures}−151,67, 0, 34,66) = <span class="${r.h25 > 0 ? 'log-warn' : 'log-ok'}">${r.h25.toFixed(2)}h</span></div>`);
+      lines.push(`<div class="log-line">  h_sup_50 = max(0, ${r.heures}−186,33) = <span class="${r.h50 > 0 ? 'log-warn' : 'log-ok'}">${r.h50.toFixed(2)}h</span></div>`);
+      lines.push(`<div class="log-line">  brut = ${r.taux} × (${r.hN.toFixed(2)} + ${r.h25.toFixed(2)}×1,25 + ${r.h50.toFixed(2)}×1,5)</div>`);
+      lines.push(`<div class="log-line">       = <span class="log-ok">${r.brut.toFixed(2)} €</span></div>`);
+      if(state.brut_recu !== null){
+        const d = state.brut_recu - r.brut;
+        const cls = Math.abs(d) <= r.brut * 0.02 ? 'log-ok' : (d < 0 ? 'log-alert' : 'log-warn');
+        lines.push(`<div class="log-line">  brut reçu = ${state.brut_recu.toFixed(2)} € → écart ${d >= 0 ? '+' : ''}${d.toFixed(2)} € <span class="${cls}">[${Math.abs(d) <= r.brut * 0.02 ? 'OK' : d < 0 ? 'SOUS-PAYÉ' : 'sur-payé'}]</span></div>`);
+      }
+      lines.push(`<div class="log-line">  cotisations = ${r.brut.toFixed(2)} × ${r.statut}% = ${r.cot.toFixed(2)} €</div>`);
+      lines.push(`<div class="log-line">  net estimé = <span class="log-ok">${r.net.toFixed(2)} €</span></div>`);
+      lines.push(`<div class="log-total">  Verdict : ${r.issues.length === 0 ? 'COHÉRENT' : r.issues.length + ' anomalie(s) détectée(s)'}</div>`);
+    }
+    if(state.indem_result){
+      const r = state.indem_result;
+      lines.push(`<div class="log-title">[INDEMNITÉ LICENCIEMENT]</div>`);
+      lines.push(`<div class="log-line">  salaire ref = ${r.salaire} €, ancienneté = ${r.ans} ans</div>`);
+      if(r.ans <= 10){
+        lines.push(`<div class="log-line">  formule = salaire × 1/4 × ans = ${r.salaire} × 0,25 × ${r.ans}</div>`);
+      } else {
+        lines.push(`<div class="log-line">  formule = (salaire×1/4×10) + (salaire×1/3×(${r.ans}−10))</div>`);
+      }
+      lines.push(`<div class="log-total">  Indemnité minimum légale = <span class="log-ok">${r.indemnite.toFixed(2)} €</span></div>`);
+      lines.push(`<div class="log-line">  Préavis = ${r.preavis} mois (Art. L.1234-1)</div>`);
+    }
+    if(!state.result && !state.indem_result){
+      lines.push(`<div class="log-line">  Pas encore d'analyse — utilise les onglets Paie ou Indemnités.</div>`);
+    }
+    document.getElementById('console').innerHTML = lines.join('');
+  }
+};
+
+/* ============================================================
+   EXPORTER
+   ============================================================ */
+const exporter = {
+  copy(){
+    const txt = exporter._format();
+    if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(() => exporter._fb('✓ Copié')); }
+    else {
+      const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); exporter._fb('✓ Copié'); } catch{}
+      document.body.removeChild(ta);
+    }
+  },
+  download(){
+    const txt = exporter._format();
+    const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    a.href = url; a.download = `PaieAudit_${stamp}.txt`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    exporter._fb('✓ Téléchargé');
+  },
+  _format(){
+    const ts = new Date();
+    const lines = [];
+    lines.push('====================================');
+    lines.push('  PaieAudit — Bilan d\'audit');
+    lines.push('  ' + ts.toLocaleDateString('fr-FR') + ' ' + ts.toLocaleTimeString('fr-FR'));
+    lines.push('====================================');
+    lines.push('');
+    if(state.result){
+      const r = state.result;
+      lines.push('-- AUDIT PAIE --');
+      lines.push(`  Taux horaire     : ${r.taux} €/h${r.taux < SMIC_HOURLY ? ' ⛔ < SMIC' : ''}`);
+      lines.push(`  Heures           : ${r.heures}h (norm ${r.hN.toFixed(2)} + 25% ${r.h25.toFixed(2)} + 50% ${r.h50.toFixed(2)})`);
+      lines.push(`  Brut théorique   : ${r.brut.toFixed(2)} €`);
+      if(state.brut_recu) lines.push(`  Brut reçu        : ${state.brut_recu.toFixed(2)} € (écart ${(state.brut_recu - r.brut).toFixed(2)} €)`);
+      lines.push(`  Cotisations      : ${r.cot.toFixed(2)} € (${r.statut}%)`);
+      lines.push(`  Net estimé       : ${r.net.toFixed(2)} €`);
+      if(state.net_recu) lines.push(`  Net reçu         : ${state.net_recu.toFixed(2)} €`);
+      if(r.issues.length > 0){
+        lines.push('');
+        lines.push('  ANOMALIES DÉTECTÉES :');
+        r.issues.forEach((i,n) => lines.push(`    ${n+1}. ${i.txt}`));
+      }
+      lines.push('');
+    }
+    if(state.indem_result){
+      const r = state.indem_result;
+      lines.push('-- INDEMNITÉ LICENCIEMENT --');
+      lines.push(`  Salaire de réf   : ${r.salaire} €`);
+      lines.push(`  Ancienneté       : ${r.ans} ans`);
+      lines.push(`  Indemnité légale : ${r.indemnite.toFixed(2)} €`);
+      lines.push(`  Préavis          : ${r.preavis} mois (${(r.preavis * r.salaire).toFixed(2)} €)`);
+      lines.push('');
+    }
+    lines.push('====================================');
+    lines.push('Audit indicatif — pas un avis juridique');
+    lines.push('Code du travail FR 2026 · contrôlé par tests');
+    lines.push('Recours : Inspection du travail / Prud\'hommes');
+    lines.push('====================================');
+    return lines.join('\n');
+  },
+  _fb(msg){
+    const el = document.getElementById('export-feedback');
+    if(!el) return;
+    el.textContent = msg; el.style.display = 'block';
+    clearTimeout(exporter._t);
+    exporter._t = setTimeout(() => { el.style.display = 'none'; }, 2500);
+  }
+};
+
+/* ============================================================
+   UI
+   ============================================================ */
+const ui = {
+  tab(name){
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById('panel-'+name);
+    if(panel) panel.classList.add('active');
+    const btn = document.querySelector(`.nav-btn[data-tab="${name}"]`);
+    if(btn) btn.classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+};
+
+/* ============================================================
+   PWA
+   ============================================================ */
+const pwa = {
+  deferredPrompt: null,
+  init(){
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW failed:', err));
+      });
+    }
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      pwa.deferredPrompt = e;
+      const btn = document.getElementById('install-btn');
+      if(btn) btn.style.display = 'flex';
+    });
+    window.addEventListener('appinstalled', () => {
+      pwa.deferredPrompt = null;
+      const btn = document.getElementById('install-btn');
+      if(btn) btn.style.display = 'none';
+    });
+    if(window.matchMedia('(display-mode: standalone)').matches){
+      const btn = document.getElementById('install-btn');
+      if(btn) btn.style.display = 'none';
+    }
+    pwa.updateOffline();
+    window.addEventListener('online', pwa.updateOffline);
+    window.addEventListener('offline', pwa.updateOffline);
+  },
+  install(){
+    if(!pwa.deferredPrompt){
+      alert('Pour installer PaieAudit :\n\niOS Safari : ⎋ Partager → "Sur l\'écran d\'accueil"\nAndroid : menu ⋮ → "Installer"');
+      return;
+    }
+    pwa.deferredPrompt.prompt();
+    pwa.deferredPrompt.userChoice.then(() => {
+      pwa.deferredPrompt = null;
+      const btn = document.getElementById('install-btn');
+      if(btn) btn.style.display = 'none';
+    });
+  },
+  updateOffline(){
+    const chip = document.getElementById('offline-chip');
+    if(!chip) return;
+    chip.style.display = navigator.onLine ? 'none' : 'inline-flex';
+  }
+};
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.querySelectorAll('#seg-statut .seg-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#seg-statut .seg-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  state.statut = +b.dataset.cot;
+  if(state.result) audit.run();
+}));
+
+pwa.init();
+render.global();
+render.actions();
+</script>
+</body>
+</html>
