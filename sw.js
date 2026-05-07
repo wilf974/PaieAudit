@@ -1,4 +1,4 @@
-const CACHE = 'paieaudit-v1.1';
+const CACHE = 'paieaudit-v1.2';
 const CORE = ['./','./index.html','./manifest.webmanifest','./icon-192.svg','./icon-512.svg','./icon-maskable.svg'];
 const FONT_HOSTS = ['fonts.googleapis.com','fonts.gstatic.com'];
 // pdf.js chargé depuis CDN au 1er upload PDF, mis en cache pour usage offline ensuite
